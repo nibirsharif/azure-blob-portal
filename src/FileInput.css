@@ -1,0 +1,24 @@
+div.gallery {
+  border: 1px solid #ccc;
+}
+
+div.gallery:hover {
+  border: 1px solid #777;
+}
+
+img {
+  width: 33%;
+  height: auto;
+  float: left;
+  max-width: 235px;
+  border: 1px solid #ddd;
+}
+
+div.desc {
+  padding: 15px;
+  text-align: center;
+}
+
+* {
+  box-sizing: border-box;
+}
