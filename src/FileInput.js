@@ -1,90 +1,69 @@
 import React from 'react';
 import classes from './FileInput.css';
 const { BlobServiceClient, BlobClient } = require("@azure/storage-blob");
-// Update <placeholder> with your Blob service SAS URL string
 
-//BlobEndpoint=https://snibirkedastor.blob.core.windows.net/;SharedAccessSignature=sv=2019-10-10&ss=b&srt=sco&sp=rwdlacx&se=2020-07-04T10:14:43Z&st=2020-07-04T02:14:43Z&spr=https,http&sig=n1gmlM2vdBzbHgdB7Gv7HCAHFNHSkZAi2oEboswoFSI%3D
-//https://snibirkedastor.blob.core.windows.net/?sv=2019-10-10&ss=b&srt=sco&sp=rwdlacx&se=2020-07-04T10:14:43Z&st=2020-07-04T02:14:43Z&spr=https,http&sig=n1gmlM2vdBzbHgdB7Gv7HCAHFNHSkZAi2oEboswoFSI%3D
-const blobSasUrl = "https://snibirkedastor.blob.core.windows.net/?sv=2019-10-10&ss=bfqt&srt=sco&sp=rwdlacupx&se=2020-08-04T12:51:39Z&st=2020-07-04T04:51:39Z&spr=https,http&sig=KxiV6bHa%2BaLdOnVYVWaMGrc3BSzvfgrqNyVaGj5u4rE%3D";
-const BlobEndpoint = "BlobEndpoint=https://snibirkedastor.blob.core.windows.net/;QueueEndpoint=https://snibirkedastor.queue.core.windows.net/;FileEndpoint=https://snibirkedastor.file.core.windows.net/;TableEndpoint=https://snibirkedastor.table.core.windows.net/;SharedAccessSignature=sv=2019-10-10&ss=bfqt&srt=sco&sp=rwdlacupx&se=2020-08-04T12:51:39Z&st=2020-07-04T04:51:39Z&spr=https,http&sig=KxiV6bHa%2BaLdOnVYVWaMGrc3BSzvfgrqNyVaGj5u4rE%3D"
+// Update <placeholder> with your Blob service SAS URL string
+const blobSasUrl = "";
+const BlobEndpoint = ""
+
 // Create a new BlobServiceClient
 const blobServiceClient = new BlobServiceClient(blobSasUrl);
 
 // Create a unique name for the container by 
 // appending the current time to the file name
-const containerName = "images";
+const imageContainer = "images";
 const grayContainer = "grayscale";
-let images = [];
+const cannyContainer = "canny";
+
 // Get a container client from the BlobServiceClient
-const containerClient = blobServiceClient.getContainerClient(containerName);
+const containerClient = blobServiceClient.getContainerClient(imageContainer);
+const containerClientGray = blobServiceClient.getContainerClient(grayContainer);
+const containerClientCanny = blobServiceClient.getContainerClient(cannyContainer);
 
 class FileInput extends React.Component {
     
     constructor(props) {
-      super(props);
-      this.handleSubmit = this.handleSubmit.bind(this);
-      this.fileInput = React.createRef();
+        super(props);
+        this.handleSubmit = this.handleSubmit.bind(this);
+        this.fileInput = React.createRef();
     }
 
     async componentDidMount() {
-        let viewData;
-        
         const listBlobsResponse = await containerClient.listBlobFlatSegment();
-        //console.log("here..");
-        //console.log(listBlobsResponse);
-        let TYPED_ARRAY;
+        const grayBlobsResponse = await containerClientGray.listBlobFlatSegment();
+        const cannyBlobsResponse = await containerClientCanny.listBlobFlatSegment();
+
+        var para = document.createElement("P");
+        para.innerHTML = "Images: " + listBlobsResponse.segment.blobItems.length +
+            ", Grayscale: " + grayBlobsResponse.segment.blobItems.length +
+            ", Canny: " + cannyBlobsResponse.segment.blobItems.length;
+        document.getElementById("count").appendChild(para);
+
         for await (const blob of listBlobsResponse.segment.blobItems) {
-            //console.log(`Blob: ${blob.name}`);
-            var blobClient = new BlobClient(BlobEndpoint, containerName, blob.name);
+            var blobClient = new BlobClient(BlobEndpoint, imageContainer, blob.name);
             var lease = blobClient.getBlobLeaseClient("test");
-            images.push(lease.url);
-            //console.log(lease.url);
+            blobClient = new BlobClient(BlobEndpoint, grayContainer, blob.name);
+            var grayLease = blobClient.getBlobLeaseClient("test");
+            blobClient = new BlobClient(BlobEndpoint, cannyContainer, blob.name);
+            var cannyLease = blobClient.getBlobLeaseClient("test");
 
             var img = document.createElement("img");
             img.src = lease.url;
-            //img.width = 150;
-            //img.border = "2px solid #ffff";
             img.title = blob.name;
-            var src = document.getElementById("x");
+            var src = document.getElementById("container");
             src.appendChild(img);
-        }
-        var img = document.querySelector( "#photo" );
-        //img.src = lease.url;
-        //console.log(images)
 
-        viewData = {
-            title: 'Home',
-            viewName: 'index',
-            accountName: process.env.AZURE_STORAGE_ACCOUNT_NAME,
-            containerName: containerName
-        };
-    
-        if (listBlobsResponse.segment.blobItems.length) {
-            viewData.thumbnails = listBlobsResponse.segment.blobItems;
-        }
+            var img = document.createElement("img");
+            img.src = grayLease.url;
+            img.title = blob.name;
+            var src = document.getElementById("container");
+            src.appendChild(img);
 
-        //console.log(viewData.thumbnails)
-        
-        const fileList = document.getElementById("file-list");
-        fileList.size = 0;
-        fileList.innerHTML = "";
-        try {
-            console.log("Retrieving file list...");
-            let iter = containerClient.listBlobsFlat();
-            let blobItem = await iter.next();
-            while (!blobItem.done) {
-                let i = 0;
-                fileList.size += 1;
-                fileList.innerHTML += `<option>${blobItem.value.name}</option>`;
-                blobItem = await iter.next();
-            }
-            if (fileList.size > 0) {
-                console.log("Done.");
-            } else {
-                console.log("The container does not contain any files.");
-            }
-        } catch (error) {
-            console.log(error.message);
+            var img = document.createElement("img");
+            img.src = cannyLease.url;
+            img.title = blob.name;
+            var src = document.getElementById("container");
+            src.appendChild(img);
         }
     }
     
@@ -97,7 +76,8 @@ class FileInput extends React.Component {
             // promises.push(blockBlobClient.uploadBrowserData(this.fileInput.current.files[0]));
             for (const file of this.fileInput.current.files) {
                 const blockBlobClient = containerClient.getBlockBlobClient(file.name);
-                promises.push(blockBlobClient.uploadBrowserData(file));
+                console.log(file);
+                promises.push(blockBlobClient.uploadBrowserData(file, { blockSize: 100 * 1024 * 1024, concurrency: 20 }));
             }
             await Promise.all(promises);
             console.log("Done...");
@@ -109,7 +89,6 @@ class FileInput extends React.Component {
     }
   
     render() {
-        console.log('render...')
         return (
             <>
                 <form onSubmit={this.handleSubmit}>
@@ -118,15 +97,16 @@ class FileInput extends React.Component {
                         <input type="file" multiple ref={this.fileInput} />
                     </label>
                     <br />
-                    <button type="submit">Submit</button>
-                    
+                    <button className={classes.input} type="submit">Upload</button>
                 </form>
-                <p><b>Blobs:</b></p>
-                <select id="file-list" multiple style={{ width: 300, height: 300, color:"#4a54f1" }} />
-                <br /><br />
-                <p><b>Images:</b></p>
-                {/* <img id="photo" style={{ width: 300 }} /> */}
-                <div id="x" className={classes.gallery} />
+                <label>
+                    Blob count:
+                    <div id="count" className={classes.gallery} />
+                </label>
+                <label>
+                    Images:
+                    <div id="container" className={classes.gallery} />
+                </label>
             </>
         );
     }
