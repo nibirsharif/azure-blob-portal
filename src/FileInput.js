@@ -77,7 +77,7 @@ class FileInput extends React.Component {
             for (const file of this.fileInput.current.files) {
                 const blockBlobClient = containerClient.getBlockBlobClient(file.name);
                 console.log(file);
-                promises.push(blockBlobClient.uploadBrowserData(file, { blockSize: 100 * 1024 * 1024, concurrency: 20 }));
+                promises.push(blockBlobClient.uploadBrowserData(file, { blockSize: 4 * 1024 * 1024, concurrency: 20 }));
             }
             await Promise.all(promises);
             console.log("Done...");
